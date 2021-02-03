@@ -15,6 +15,8 @@ ABF::ABF(const char* f, unsigned int n) {
 	ABF_MultiplexWrite = (pABF_MultiplexWrite)GetProcAddress(module, "ABF_MultiplexWrite");
 	ABF_WriteDACFileEpi = (pABF_WriteDACFileEpi)GetProcAddress(module, "ABF_WriteDACFileEpi");
 	ABF_UpdateHeader = (pABF_UpdateHeader)GetProcAddress(module, "ABF_UpdateHeader");
+	ABF_SynchCountFromEpisode = (pABF_SynchCountFromEpisode)GetProcAddress(module, "ABF_SynchCountFromEpisode");
+
 	ABF_ReadOpen(fn, &hfile, ABF_DATAFILE, &fh, &maxsamples, &maxepi, &error);
 	if (fh.nOperationMode == 3) {
 		buffer = new float[maxsamples * maxepi];
@@ -45,6 +47,7 @@ std::vector<float> ABF::data(int c, int s, bool m) {
 	if (buffer == NULL) {
 		return t;
 	}
+	ABF_SynchCountFromEpisode(hfile, &fh, s, &synstart, &error);
 	if (fh.nOperationMode == 3 && m) {
 		float* res = buffer;
 		unsigned int numsamples = maxsamples;
@@ -74,7 +77,10 @@ std::vector<float> ABF::data(int c, int s, bool m) {
 }
 
 void ABF::save(const char* f, float* buff, int c, int s, bool m) {
-	int phFile;
-	ABF_WriteOpen(f, &phFile, ABF_DATAFILE, &fh, &error);
-
+	unsigned int num = 10000;
+	DWORD count = 0;
+	ABF_WriteOpen(f, &hfile, ABF_APPEND, &fh, &error);
+	ABF_MultiplexWrite(hfile, &fh, ABF_APPEND, buff, synstart, num, &error);
+	ABF_UpdateHeader(hfile, &fh, &error);
+	return;
 }

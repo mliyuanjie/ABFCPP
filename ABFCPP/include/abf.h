@@ -13,7 +13,7 @@ public:
 	~ABF();
 	std::vector<float> data(int channel = 0, int sweep = 1, bool m = true);
 	void save(const char* fn, float* buff, int channel = 0, int sweep = 1, bool m = true);
-	int Channel;
+	int Channel = 0;
 	int Sweep = 1;
 	float Interval;
 
@@ -25,12 +25,15 @@ private:
 	typedef int(_stdcall* pABF_WriteOpen)(const char* szFileName, int* phFile, UINT uFlags, ABFFileHeader* pFH, int* pnError);
 	typedef int(_stdcall* pABF_MultiplexWrite)(int hFile, ABFFileHeader* pFH, UINT uFlags, void* pvBuffer, DWORD dwEpiStart, UINT uNumSamples, int* pnError);
 	typedef int(_stdcall* pABF_WriteDACFileEpi)(int hFile, ABFFileHeader* pFH, short* pnDACArray, int* pnError);
-	typedef int(_stdcall* pABF_UpdateHeader)(int hFile, ABFFileHeader* pFH, int* pnError);
+	typedef int(_stdcall* pABF_UpdateHeader)(int hFile, ABFFileHeader* pFH, int* pnError);      
+	typedef int(_stdcall* pABF_SynchCountFromEpisode)(int hFile, const ABFFileHeader* pFH, DWORD dwEpisode, DWORD* pdwSynchCount, int* pnError);
+
 
 	ABFFileHeader fh;
 	const char* fn;
 	int hfile;
 	int error;
+	DWORD synstart;
 	unsigned int maxsamples;
 	unsigned long maxepi;
 	float* buffer=NULL;
@@ -44,6 +47,7 @@ private:
 	pABF_MultiplexWrite ABF_MultiplexWrite;
 	pABF_WriteDACFileEpi ABF_WriteDACFileEpi;
 	pABF_UpdateHeader ABF_UpdateHeader;
+	pABF_SynchCountFromEpisode ABF_SynchCountFromEpisode;
 };
 
 
