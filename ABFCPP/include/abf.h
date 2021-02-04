@@ -9,19 +9,19 @@
 
 class ABF {
 public:
-	ABF(const char* f, unsigned int n=1024*16);
+	ABF(std::string f, unsigned int n=1024*16);
 	~ABF();
 	std::vector<float> data(int channel = 0, int sweep = 1, bool m = true);
-	void save(const char* fn, float* buff, int channel = 0, int sweep = 1, bool m = true);
+	void save(std::vector<unsigned int>& start, std::vector<unsigned int>& end);
 	int Channel = 0;
 	int Sweep = 1;
 	float Interval;
 
 private:
-	typedef int(_stdcall* pABF_ReadOpen)(const char* szFileName, int* phFile, UINT fFlags, ABFFileHeader* pFH, UINT* puMaxSamples, DWORD* pdwMaxEpi, int* pnError);
+	typedef int(_stdcall* pABF_ReadOpen)(const char* szFileName, int* phFile, UINT uFlags, ABFFileHeader* pFH, UINT* puMaxSamples, DWORD* pdwMaxEpi, int* pnError);
 	typedef int(_stdcall* pABF_ReadChannel)(int hFile, ABFFileHeader* pFH, int nChannel, unsigned long dwEpisode, float* pfBuffer, unsigned int* puNumsAMPLES, int* pnError);
 	typedef int(_stdcall* pABF_Close)(int hFile, int* pnError);
-	typedef int(_stdcall* pABF_GetWaveform)(int nFile, ABFFileHeader* pFH, int nChannel, unsigned long dwEpisode, float* pfBuffer, int* pnError);
+	typedef int(_stdcall* pABF_GetWaveform)(int hFile, ABFFileHeader* pFH, int nChannel, unsigned long dwEpisode, float* pfBuffer, int* pnError);
 	typedef int(_stdcall* pABF_WriteOpen)(const char* szFileName, int* phFile, UINT uFlags, ABFFileHeader* pFH, int* pnError);
 	typedef int(_stdcall* pABF_MultiplexWrite)(int hFile, ABFFileHeader* pFH, UINT uFlags, void* pvBuffer, DWORD dwEpiStart, UINT uNumSamples, int* pnError);
 	typedef int(_stdcall* pABF_WriteDACFileEpi)(int hFile, ABFFileHeader* pFH, short* pnDACArray, int* pnError);
@@ -30,7 +30,7 @@ private:
 
 
 	ABFFileHeader fh;
-	const char* fn;
+	std::string fn;
 	int hfile;
 	int error;
 	DWORD synstart;

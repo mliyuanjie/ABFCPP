@@ -1,9 +1,9 @@
 #include "abf.h"
 
-ABF::ABF(const char* f, unsigned int n) {
+ABF::ABF(std::string f, unsigned int n) {
 	fn = f;
 	error = 0;
-	hfile = 0;
+	hfile = 1;
 	maxsamples = n;
 	maxepi = 0;
 	module = LoadLibraryA("../ABFCPP/bin/ABFFIO.dll");
@@ -17,7 +17,7 @@ ABF::ABF(const char* f, unsigned int n) {
 	ABF_UpdateHeader = (pABF_UpdateHeader)GetProcAddress(module, "ABF_UpdateHeader");
 	ABF_SynchCountFromEpisode = (pABF_SynchCountFromEpisode)GetProcAddress(module, "ABF_SynchCountFromEpisode");
 
-	ABF_ReadOpen(fn, &hfile, ABF_DATAFILE, &fh, &maxsamples, &maxepi, &error);
+	ABF_ReadOpen(fn.c_str(), &hfile, ABF_DATAFILE, &fh, &maxsamples, &maxepi, &error);
 	if (fh.nOperationMode == 3) {
 		buffer = new float[maxsamples * maxepi];
 	}
@@ -29,6 +29,7 @@ ABF::ABF(const char* f, unsigned int n) {
 		Sweep = fh.lActualEpisodes;
 	}
 	Interval = fh.fADCSequenceInterval;
+	ABF_Close(hfile, &error);
 }
 
 ABF::~ABF(){
@@ -42,12 +43,12 @@ ABF::~ABF(){
 }
 
 std::vector<float> ABF::data(int c, int s, bool m) {
-	//ABF_ReadOpen(fn, &hfile, ABF_DATAFILE, &fh, &maxsamples, &maxepi, &error);
+	ABF_ReadOpen(fn.c_str(), &hfile, ABF_DATAFILE, &fh, &maxsamples, &maxepi, &error);
 	std::vector<float> t;
 	if (buffer == NULL) {
 		return t;
 	}
-	ABF_SynchCountFromEpisode(hfile, &fh, s, &synstart, &error);
+	//ABF_SynchCountFromEpisode(hfile, &fh, s, &synstart, &error);
 	if (fh.nOperationMode == 3 && m) {
 		float* res = buffer;
 		unsigned int numsamples = maxsamples;
@@ -73,13 +74,15 @@ std::vector<float> ABF::data(int c, int s, bool m) {
 		ABF_GetWaveform(hfile, &fh, c, s, buffer, &error);
 		t = std::vector<float>(buffer, buffer + maxsamples);
 	}
+	ABF_Close(hfile, &error);
 	return t;
 }
 
-void ABF::save(const char* f, float* buff, int c, int s, bool m) {
-	unsigned int num = 10000;
-	DWORD count = 0;
-	ABF_WriteOpen(f, &hfile, ABF_APPEND, &fh, &error);
+void ABF::save(std::vector<unsigned int>& start, std::vector<unsigned int>& end) {
+	std::string fnout = "_new.abf";
+	fnout.insert(0, fn, 0, fn.size() - 4);
+	
+	ABF_WriteOpen(fnout.c_str(), &hfile, ABF_APPEND, &fh, &error);
 	ABF_MultiplexWrite(hfile, &fh, ABF_APPEND, buff, synstart, num, &error);
 	ABF_UpdateHeader(hfile, &fh, &error);
 	return;
