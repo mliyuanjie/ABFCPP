@@ -15,8 +15,9 @@ ABF::ABF(std::string f, unsigned int n) {
 	ABF_MultiplexWrite = (pABF_MultiplexWrite)GetProcAddress(module, "ABF_MultiplexWrite");
 	ABF_WriteDACFileEpi = (pABF_WriteDACFileEpi)GetProcAddress(module, "ABF_WriteDACFileEpi");
 	ABF_UpdateHeader = (pABF_UpdateHeader)GetProcAddress(module, "ABF_UpdateHeader");
-	ABF_SynchCountFromEpisode = (pABF_SynchCountFromEpisode)GetProcAddress(module, "ABF_SynchCountFromEpisode");
-
+	//ABF_SynchCountFromEpisode = (pABF_SynchCountFromEpisode)GetProcAddress(module, "ABF_SynchCountFromEpisode");
+	ABF_MultiplexRead = (pABF_MultiplexRead)GetProcAddress(module, "ABF_MultiplexRead");
+	ABF_ReadDACFileEpi = (pABF_ReadDACFileEpi)GetProcAddress(module, "ABF_ReadDACFileEpi");
 	ABF_ReadOpen(fn.c_str(), &hfile, ABF_DATAFILE, &fh, &maxsamples, &maxepi, &error);
 	if (fh.nOperationMode == 3) {
 		buffer = new float[maxsamples * maxepi];
@@ -79,11 +80,69 @@ std::vector<float> ABF::data(int c, int s, bool m) {
 }
 
 void ABF::save(std::vector<unsigned int>& start, std::vector<unsigned int>& end) {
+	if (fh.nOperationMode != 3) {
+		return;
+	}
+	int phfile = 0;
 	std::string fnout = "_new.abf";
 	fnout.insert(0, fn, 0, fn.size() - 4);
-	
-	ABF_WriteOpen(fnout.c_str(), &hfile, ABF_APPEND, &fh, &error);
-	ABF_MultiplexWrite(hfile, &fh, ABF_APPEND, buff, synstart, num, &error);
-	ABF_UpdateHeader(hfile, &fh, &error);
+	unsigned int numsamples = maxsamples;
+	ABF_ReadOpen(fn.c_str(), &hfile, ABF_DATAFILE, &fh, &numsamples, &maxepi, &error);
+	ABF_WriteOpen(fnout.c_str(), &phfile, ABF_DATAFILE, &fh, &error);
+	if (fh.nDataFormat == 0) {
+		short* pnBuffer = new short[maxsamples * maxepi];
+		short* res = pnBuffer;
+		for (unsigned int i = 1; i <= 1; i++) {
+			ABF_MultiplexRead(hfile, &fh, i, pnBuffer, &numsamples, &error);
+			res += numsamples;
+		}
+		int i = 0;
+		int j = 0;
+		int flag = start[j];
+		while(i < res - pnBuffer) {
+			if (flag >= end[j]) {
+				j++;
+				if (i >= start.size()) {
+					break;
+				}
+				flag = start[j];
+			}
+			if (flag > i) {
+				pnBuffer[i] = pnBuffer[flag];
+			}
+			flag++;
+			i++;
+		}
+		ABF_MultiplexWrite(phfile, &fh, ABF_DATAFILE, pnBuffer, 0, i, &error);
+		delete pnBuffer;
+	}
+	else if (fh.nDataFormat == 1) {
+		float* res = buffer;
+		for (unsigned int i = 1; i <= maxepi; i++) {
+			ABF_MultiplexRead(hfile, &fh, i, buffer, &numsamples, &error);
+			res += numsamples;
+		}
+		int i = 0;
+		int j = 0;
+		int flag = start[j];
+		while (i < res - buffer) {
+			if (flag >= end[j]) {
+				j++;
+				if (i >= start.size()) {
+					break;
+				}
+				flag = start[j];
+			}
+			if (flag > i) {
+				buffer[i] = buffer[flag];
+			}
+			flag++;
+			i++;
+		}
+		ABF_MultiplexWrite(phfile, &fh, ABF_DATAFILE, buffer, 0, i, &error);
+	}
+	ABF_UpdateHeader(phfile, &fh, &error);
+	ABF_Close(hfile, &error);
+	ABF_Close(phfile, &error);
 	return;
 }
