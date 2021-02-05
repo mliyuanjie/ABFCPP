@@ -92,26 +92,28 @@ void ABF::save(std::vector<unsigned int>& start, std::vector<unsigned int>& end)
 	if (fh.nDataFormat == 0) {
 		short* pnBuffer = new short[maxsamples * maxepi];
 		short* res = pnBuffer;
-		for (unsigned int i = 1; i <= 1; i++) {
+		for (unsigned int i = 1; i <= maxepi; i++) {
 			ABF_MultiplexRead(hfile, &fh, i, pnBuffer, &numsamples, &error);
 			res += numsamples;
 		}
 		int i = 0;
 		int j = 0;
-		int flag = start[j];
+		int flag = Channel*start[j];
 		while(i < res - pnBuffer) {
-			if (flag >= end[j]) {
+			if (flag >= Channel*end[j]) {
 				j++;
 				if (i >= start.size()) {
 					break;
 				}
-				flag = start[j];
+				flag = Channel*start[j];
 			}
 			if (flag > i) {
-				pnBuffer[i] = pnBuffer[flag];
+				for (int n = 0; n < Channel; n++) {
+					pnBuffer[i+n] = pnBuffer[flag+n];
+				}
 			}
-			flag++;
-			i++;
+			flag+=Channel;
+			i+=Channel;
 		}
 		ABF_MultiplexWrite(phfile, &fh, ABF_DATAFILE, pnBuffer, 0, i, &error);
 		delete[] pnBuffer;
@@ -124,20 +126,22 @@ void ABF::save(std::vector<unsigned int>& start, std::vector<unsigned int>& end)
 		}
 		int i = 0;
 		int j = 0;
-		int flag = start[j];
+		int flag = Channel*start[j];
 		while (i < res - buffer) {
-			if (flag >= end[j]) {
+			if (flag >= Channel*end[j]) {
 				j++;
 				if (i >= start.size()) {
 					break;
 				}
-				flag = start[j];
+				flag = Channel*start[j];
 			}
 			if (flag > i) {
-				buffer[i] = buffer[flag];
+				for (int n = 0; n < Channel; n++) {
+					buffer[i+n] = buffer[flag+n];
+				}
 			}
-			flag++;
-			i++;
+			flag+=Channel;
+			i+=Channel;
 		}
 		ABF_MultiplexWrite(phfile, &fh, ABF_DATAFILE, buffer, 0, i, &error);
 	}
