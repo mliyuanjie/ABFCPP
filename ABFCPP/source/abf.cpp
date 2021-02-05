@@ -114,7 +114,7 @@ void ABF::save(std::vector<unsigned int>& start, std::vector<unsigned int>& end)
 			i++;
 		}
 		ABF_MultiplexWrite(phfile, &fh, ABF_DATAFILE, pnBuffer, 0, i, &error);
-		delete pnBuffer;
+		delete[] pnBuffer;
 	}
 	else if (fh.nDataFormat == 1) {
 		float* res = buffer;
